@@ -7,62 +7,59 @@
 # 3. save the chat history to send back and forth for context
 
 from fastapi import FastAPI, UploadFile
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from dotenv import load_dotenv
+
 import openai
 import os
-import json  # Added import for JSON file handling
+import json
+import requests
 
-# Load environment variables
 load_dotenv()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.organization = os.getenv("OPENAI_ORG")
+openai.api_key = os.getenv("OPEN_AI_KEY")
+openai.organization = os.getenv("OPEN_AI_ORG")
+elevenlabs_key = os.getenv("ELEVENLABS_KEY")
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:5174",
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-
-@app.post("/talk")  # Transcription API
+@app.post("/talk")
 async def post_audio(file: UploadFile):
-    # **Error**: Opening `file.filename` directly won't work as it's not stored on disk.
-    # **Fix**: Use `await file.read()` to access uploaded file content.
-    audio_content = await file.read()
-    transcription = openai.Audio.transcribe(
-        model="whisper-1", file=audio_content, response_format="text"
-    )
     user_message = transcribe_audio(file)
     chat_response = get_chat_response(user_message)
-    print(transcription)
-    return {"transcription": transcription, "chat_response": chat_response}
+    audio_output = text_to_speech(chat_response)
 
+    def iterfile():
+        yield audio_output
 
-@app.post("/translate")  # Translation API
-async def post_translate(file: UploadFile):
-    # **Error**: Same issue with accessing `file.filename`. Fixed below.
-    audio_content = await file.read()
-    translation = openai.Audio.translations.create(
-        model="whisper-1", file=audio_content, response_format="text"
-    )
-    print(translation)
-    return {"translation": translation}
+    return StreamingResponse(iterfile(), media_type="application/octet-stream")
 
-
-@app.post("/uploadfile/")
-async def create_upload_file(file: UploadFile):
-    return {"filename": file.filename}
-
-
-# Test OpenAI API
-# **Error**: Duplicated `openai.api_key` initialization; not needed here.
-try:
-    models = openai.Model.list()
-    print("Available Models:", models)
-except Exception as e:
-    print("Error:", e)
+@app.get("/clear")
+async def clear_history():
+    file = 'database.json'
+    open(file, 'w')
+    return {"message": "Chat history has been cleared"}
 
 # Functions
 def transcribe_audio(file):
@@ -73,8 +70,6 @@ def transcribe_audio(file):
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
     print(transcript)
     return transcript
-
-
 
 def get_chat_response(user_message):
     messages = load_messages()
@@ -110,7 +105,6 @@ def load_messages():
         )
     return messages
 
-
 def save_messages(user_message, gpt_response):
     file = 'database.json'
     messages = load_messages()
@@ -118,3 +112,39 @@ def save_messages(user_message, gpt_response):
     messages.append({"role": "assistant", "content": gpt_response})
     with open(file, 'w') as f:
         json.dump(messages, f)
+
+def text_to_speech(text):
+    voice_id = 'pNInz6obpgDQGcFmaJgB'
+    
+    body = {
+        "text": text,
+        "model_id": "eleven_monolingual_v1",
+        "voice_settings": {
+            "stability": 0,
+            "similarity_boost": 0,
+            "style": 0.5,
+            "use_speaker_boost": True
+        }
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "accept": "audio/mpeg",
+        "xi-api-key": elevenlabs_key
+    }
+
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+    try:
+        response = requests.post(url, json=body, headers=headers)
+        if response.status_code == 200:
+            return response.content
+        else:
+            print('something went wrong')
+    except Exception as e:
+        print(e)
+
+
+#1. Send in audio, and have it transcribed
+#2. We want to send it to chatgpt and get a response
+#3. We want to save the chat history to send back and forth for context.
