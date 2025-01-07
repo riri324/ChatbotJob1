@@ -148,3 +148,16 @@ def text_to_speech(text):
 #1. Send in audio, and have it transcribed
 #2. We want to send it to chatgpt and get a response
 #3. We want to save the chat history to send back and forth for context.
+
+
+
+# Yousef Notes : I did everything you did and fixed some things you didn’t do from the video, and I also just checked the Postman, and it didn’t work again. :{
+
+# Notes:
+# 1. Make sure `.env` file is properly configured with OpenAI and ElevenLabs API keys. Use `.env_sample` as a reference if needed.(but i did this just make sure you connect it properly) .
+# 2. If Postman is not working, double-check:
+#    - The endpoint URL (http://localhost:8000/talk). (you need to watch the video to understand this) 
+# 3. Test the `/clear` endpoint after interacting with the app to verify that the chat history is cleared properly.
+# 4. Make sure to install all necessary dependencies (`pip install fastapi uvicorn python-dotenv openai requests`).
+# 5. If ElevenLabs TTS fails, verify that the `voice_id` matches a valid voice in your ElevenLabs account.
+
