@@ -1,0 +1,5 @@
+create a .env file and add the keys like in this format 
+OPEN_AI_KEY="YOUR_API_KEY"
+OPEN_AI_ORG="YOUR_ORG_KEY"
+ELEVENLABS_KEY="YOUR_KEY_HERE"
+then run it 
