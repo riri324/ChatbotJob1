@@ -18,6 +18,7 @@ import json
 import requests
 
 load_dotenv(override=True)
+
 openai.api_key = os.getenv("OPEN_AI_KEY")
 openai.organization = os.getenv("OPEN_AI_ORG")
 elevenlabs_key = os.getenv("ELEVENLABS_KEY")
@@ -45,12 +46,9 @@ async def root():
 async def post_audio(file: UploadFile):
     user_message = transcribe_audio(file)
     chat_response = get_chat_response(user_message)
-    audio_output = text_to_speech(chat_response)
-
-    def iterfile():
-        yield audio_output
-
-    return StreamingResponse(iterfile(), media_type="application/octet-stream")
+    
+    # Return the transcription text and the bot's response in JSON format
+    return {"transcription": user_message['text'], "bot_response": chat_response}
 
 @app.get("/clear")
 async def clear_history():
@@ -158,3 +156,8 @@ def text_to_speech(text):
 # 4. Make sure to install all necessary dependencies (`pip install fastapi uvicorn python-dotenv openai requests`).
 # 5. If ElevenLabs TTS fails, verify that the `voice_id` matches a valid voice in your ElevenLabs account.
 
+
+
+# uvicorn main:app --reload
+# npm start  (command to run FrontEnd)
+# you need a two terminal, first terminal to run backend and second one to run FrontEnd

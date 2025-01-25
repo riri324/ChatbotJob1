@@ -1,0 +1,78 @@
+.App {
+  font-family: Arial, sans-serif;
+  background: #f5f8fb;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.messages {
+  flex: 1;
+  height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.bot-message {
+  align-self: flex-start;
+  max-width: 80%;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 12px 12px 12px 0;
+  background: #00aaa5;
+  color: white;
+  word-wrap: break-word;
+}
+
+.user-message {
+  align-self: flex-end;
+  max-width: 80%;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 12px 12px 0 12px;
+  background: #e0e0e0;
+  color: black;
+  word-wrap: break-word;
+}
+
+.input {
+  border-top: 1px solid #ddd;
+  padding: 10px;
+  background: #f5f8fb;
+  display: flex;
+}
+
+.input > form {
+  display: flex;
+  flex: 1;
+}
+
+.input > form > input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  outline: none;
+}
+
+.input > form > button {
+  margin-left: 10px;
+  padding: 10px;
+  border: none;
+  background: #00aaa5;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.input > form > button:hover {
+  background: #008c86;
+}
