@@ -1,24 +1,22 @@
 import React, { useState } from "react";
 import AudioUpload from "./AudioUpload";
-import './App.css';
+import "./App.css";
 
-function App() {// to hold the list of messages
+function App() {
   const [messages, setMessages] = useState([
     { type: "bot", text: "Upload your audio below." },
   ]);
-  const [input, setInput] = useState(""); // user input field
+  const [input, setInput] = useState("");
 
-  const handleSend = (e) => {//handle the send button for user messages
+  const handleSend = (e) => {
     e.preventDefault();
     if (input.trim()) {
-      // user message
       setMessages([...messages, { type: "user", text: input }]);
       setInput("");
-      // bot response
       setTimeout(() => {
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "bot", text: "Upload your audio below." },
+          { type: "bot", text: "Your message has been received." },
         ]);
       }, 1000);
     }
@@ -27,13 +25,12 @@ function App() {// to hold the list of messages
   const handleTranscription = (transcribedText) => {
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: "user", text: transcribedText }, // Add transcribed text as a user message
+      { type: "user", text: transcribedText },
     ]);
-
     setTimeout(() => {
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "bot", text: "Upload the video below." },
+        { type: "bot", text: "Thank you for uploading. What else can I help with?" },
       ]);
     }, 1000);
   };
@@ -58,7 +55,7 @@ function App() {// to hold the list of messages
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button type="submit">Send</button>
+          <button type="submit" disabled={!input.trim()}>Send</button>
         </form>
       </div>
       <AudioUpload onTranscription={handleTranscription} />
@@ -67,6 +64,3 @@ function App() {// to hold the list of messages
 }
 
 export default App;
-//uvicorn main:app --reload  (command to run BackEnd)
-//npm start  (command to run FrontEnd)
-// you need a two terminal, first terminal to run backend and second one to run FrontEnd
