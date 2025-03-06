@@ -30,10 +30,12 @@ const AudioUpload = ({ onTranscription }) => {
   };
 
   return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
+    <div className="audio-upload-container">
+      <input type="file" id="fileInput" onChange={handleFileChange} />
+      <label htmlFor="fileInput">Select an audio file</label>
       <button onClick={handleUpload}>Upload Audio</button>
-    </div>
+  </div>
+
   );
 };
 
