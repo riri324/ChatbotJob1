@@ -31,7 +31,6 @@ const AudioUpload = ({ onTranscription }) => {
 
   return (
     <div>
-      <h2>Upload Audio</h2>
       <input type="file" onChange={handleFileChange} />
       <button onClick={handleUpload}>Upload Audio</button>
     </div>

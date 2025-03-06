@@ -40,6 +40,7 @@ function App() {// to hold the list of messages
 
   return (
     <div className="App">
+      <h2>ChatbotAI</h2>
       <div className="messages">
         {messages.map((msg, index) => (
           <div
