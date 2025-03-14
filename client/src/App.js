@@ -9,7 +9,6 @@ function App() {// to hold the list of messages
     { type: "bot", text: "Upload your audio below." },
   ]);
   const [input, setInput] = useState(""); // user input field
-
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -32,19 +31,33 @@ function App() {// to hold the list of messages
     }
   };
 
-  const handleTranscription = (transcribedText) => {
+  const handleTranscription = async (transcribedText) => {
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: "user", text: transcribedText }, // Add transcribed text as a user message
+      { type: "user", text: transcribedText }, // Show user message
     ]);
-
-    setTimeout(() => {
+  
+    try {
+      const response = await fetch("http://localhost:8000/chat", { // New endpoint for text-based chat
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: transcribedText }), // Send text instead of a file
+      });
+  
+      if (!response.ok) {
+        throw new Error("Error sending transcription.");
+      }
+  
+      const data = await response.json();
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "bot", text: "Upload the video below." },
+        { type: "bot", text: data.bot_response }, // Show bot's response
       ]);
-    }, 1000);
+    } catch (error) {
+      console.error("Error sending transcription:", error);
+    }
   };
+  
 
   return (
     <div className="container">
@@ -70,7 +83,7 @@ function App() {// to hold the list of messages
             <div ref={messagesEndRef} />
           </div>
           <div className="input">
-            <form onSubmit={handleSend}>
+          <form onSubmit={handleSend}>
               <input
                 type="text"
                 placeholder="Type your message here..."
@@ -85,17 +98,10 @@ function App() {// to hold the list of messages
       </div>
     </div>
   );
-  
-  
 }
 
 export default App;
 
-//npm i --save @fortawesome/free-solid-svg-icons
-//npm i --save @fortawesome/free-regular-svg-icons
-//npm i --save @fortawesome/free-brands-svg-icons
-//npm i --save @fortawesome/react-fontawesome@latest
-//run this first 
 
 //uvicorn main:app --reload  (command to run BackEnd)
 //npm start  (command to run FrontEnd)

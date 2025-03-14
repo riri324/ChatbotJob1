@@ -2,7 +2,7 @@
   display: flex;
   height: 100vh;
   width: 100%;
-  background: #112240;
+  background: #10203c;
   padding: 20px;
   align-items: center;
   justify-content: space-between;
@@ -27,7 +27,9 @@
   color: #64ffda;
   font-family: 'Poppins', sans-serif;
   font-size: 40px;
-  font-weight: bold;
+  text-align: center;
+  max-width: 90%;
+  word-wrap: break-word;
 }
 
 
@@ -52,7 +54,7 @@
 .chatbox {
   height: 100vh;
   width: 100%;
-  background: #233554;
+  background: #20304c;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -74,8 +76,9 @@
   max-width: 70%;
   padding: 10px;
   margin: 5px;
+  margin-top: 30px;
   border-radius: 12px 12px 12px 0;
-  background: #00aaa5;
+  background: #018b86;
   color: white;
   word-wrap: break-word;
 }
@@ -105,7 +108,7 @@
 
 .input>form>input{
   flex: 1; 
-  padding: 7px 70px; 
+  padding: 7px 25px; 
   margin-left: 10px;
   font-size: 16px; 
   border: 1px solid #ddd;
@@ -115,7 +118,7 @@
 .input > form > button {
   padding: 6px 13px;
   font-size: 16px;
-  background-color: #00aaa5;
+  background-color: #029d97;
   color: white; 
   border: none; 
   border-radius: 5px; 

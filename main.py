@@ -47,14 +47,34 @@ async def post_audio(file: UploadFile):
     user_message = transcribe_audio(file)
     chat_response = get_chat_response(user_message)
     
+    # Log the conversation for debugging
+    print("User message:", user_message['text'])
+    print("Bot response:", chat_response)
+    
     # Return the transcription text and the bot's response in JSON format
     return {"transcription": user_message['text'], "bot_response": chat_response}
+
 
 @app.get("/clear")
 async def clear_history():
     file = 'database.json'
     open(file, 'w')
     return {"message": "Chat history has been cleared"}
+
+@app.post("/chat")
+async def post_chat_message(request: dict):
+    user_message = request.get("text")
+    if not user_message:
+        return {"error": "No text provided."}
+    
+    chat_response = get_chat_response({"text": user_message})
+
+    # Log conversation for debugging
+    print("User message:", user_message)
+    print("Bot response:", chat_response)
+
+    return {"bot_response": chat_response}
+
 
 # Functions
 def transcribe_audio(file):
@@ -96,9 +116,19 @@ def load_messages():
                 messages.append(item)
     else:
         messages.append(
-            {"role": "system", "content": "You are interviewing the user for a front-end React developer position. Ask short questions that are relevant to a junior level developer. Your name is Greg. The user is Travis. Keep responses under 30 words and be funny sometimes."}
+            {
+                "role": "system",
+                "content": (
+                    "You are Greg, an AI interviewer. You are interviewing a candidate "
+                    "for a front-end React developer position. Ask one question at a time. "
+                    "Start with easy questions and gradually increase difficulty. "
+                    "Do not respond with generic messages—only ask interview questions. "
+                    "Keep questions short and clear."
+                )
+            }
         )
     return messages
+
 
 def save_messages(user_message, gpt_response):
     file = 'database.json'
