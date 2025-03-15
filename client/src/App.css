@@ -9,7 +9,22 @@
   overflow: hidden; 
   box-sizing: border-box;
 }
+.clear-chat {
+  background-color: #099958;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 7px 15px;
+  font-size: 14px;
+  align-self: flex-start;
+  margin-top: 10px;
+}
 
+.clear-chat:hover {
+  background-color: #046b3c; 
+  border: none;
+}
 
 .left-section {
   flex: 1;
@@ -17,6 +32,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  
 }
 
 

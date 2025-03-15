@@ -70,14 +70,27 @@ function App() {// to hold the list of messages
       console.error("Error sending transcription:", error);
     }
   };
-  
+  const handleClearChat = async() => {
+    try{ 
+      const response = await fetch("http://localhost:8000/clear", {method: "Get"});
+
+      if(response.ok) {
+        setMessages([{type: "bot", text: "Chat has been cleared. Type /start to start an interview again!"}])
+      }else {
+        console.error("Failed to clear chat");
+      }
+    }catch (error){
+      console.error("Error clearing chat:", error);
+    }
+  };
 
   return (
     <div className="container">
       <div className="left-section">
         <h2 className="title">ChatbotAI</h2>
+        <button type="button" className="clear-chat" onClick={handleClearChat} >Clear Chat</button>
       </div>
-  
+
       {/* Vertical Divider */}
       <div className="divider"></div>
   

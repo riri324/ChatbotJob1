@@ -57,8 +57,16 @@ async def post_audio(file: UploadFile):
 
 @app.get("/clear")
 async def clear_history():
-    file = 'database.json'
-    open(file, 'w')
+    global messages, interview_started
+    messages = [{"role": "bot", "content": "Chat has been cleared. Type /start to start an interview again!"}]
+    interview_started = False
+    data = {
+        "messages": messages,
+        "interview_started": interview_started
+    }
+    with open('database.json', 'w') as f:
+        json.dump(data, f)
+        
     return {"message": "Chat history has been cleared"}
 
 @app.post("/chat")
