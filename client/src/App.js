@@ -15,21 +15,34 @@ function App() {// to hold the list of messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e) => {//handle the send button for user messages
+  const handleSend = async (e) => {
     e.preventDefault();
     if (input.trim()) {
-      // user message
       setMessages([...messages, { type: "user", text: input }]);
       setInput("");
-      // bot response
-      setTimeout(() => {
+  
+      try {
+        const response = await fetch("http://localhost:8000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: input }),
+        });
+  
+        if (!response.ok) {
+          throw new Error("Error fetching response.");
+        }
+  
+        const data = await response.json();
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "bot", text: "Upload your audio below." },
+          { type: "bot", text: data.bot_response },
         ]);
-      }, 1000);
+      } catch (error) {
+        console.error("Error:", error);
+      }
     }
   };
+  
 
   const handleTranscription = async (transcribedText) => {
     setMessages((prevMessages) => [
