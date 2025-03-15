@@ -87,14 +87,32 @@ def transcribe_audio(file):
     return transcript
 
 def get_chat_response(user_message):
-    messages = load_messages()
-    messages.append({"role": "user", "content": user_message['text']})
+    global messages, interview_started
+    user_text = user_message['text'].strip().lower()
 
-    # Send to ChatGpt/OpenAi
-    gpt_response = gpt_response = openai.ChatCompletion.create(
+    # Handle greetings
+    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]
+    if user_text in greetings:
+        return "Hello! Write '/start' to start an interview!"
+
+    # Strictly enforce the interview start requirement
+    if not interview_started:
+        if user_text == "/start":
+            interview_started = True  
+            first_question = "Can you introduce yourself?"
+            save_messages(user_text, first_question, interview_started=True)
+            return first_question
+        else:
+            return "Please type '/start' to begin the interview."
+
+    # If the interview has started, process messages normally
+    messages.append({"role": "user", "content": user_text})
+
+    # Send to OpenAI
+    gpt_response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages
-        )
+    )
 
     parsed_gpt_response = gpt_response['choices'][0]['message']['content']
 
@@ -103,40 +121,60 @@ def get_chat_response(user_message):
 
     return parsed_gpt_response
 
+
+
 def load_messages():
+    file = 'database.json'
     messages = []
-    file = 'database.json'
+    interview_started = False
 
-    empty = os.stat(file).st_size == 0
-
-    if not empty:
+    if os.path.exists(file) and os.stat(file).st_size > 0:
         with open(file) as db_file:
-            data = json.load(db_file)
-            for item in data:
-                messages.append(item)
-    else:
-        messages.append(
-            {
-                "role": "system",
-                "content": (
-                    "You are Greg, an AI interviewer. You are interviewing a candidate "
-                    "for a front-end React developer position. Ask one question at a time. "
-                    "Start with easy questions and gradually increase difficulty. "
-                    "Do not respond with generic messages—only ask interview questions. "
-                    "Keep questions short and clear."
-                )
-            }
-        )
-    return messages
+            try:
+                data = json.load(db_file)
+
+                if isinstance(data, dict): 
+                    messages = data.get("messages", [])
+                    interview_started = data.get("interview_started", False)
+                else:
+                    print("⚠️ Unexpected JSON format. Resetting.")
+                    messages = []
+            except json.JSONDecodeError:
+                print("⚠️ Corrupted database.json. Resetting.")
+                messages = []
+
+    if not messages:
+        messages.append({
+            "role": "system",
+            "content": (
+                "You are Greg, an AI interviewer. You are interviewing a candidate "
+                "for a software developer position. Ask one question at a time."
+                "Start with easy questions and gradually increase difficulty. "
+                "Do not respond with generic messages—only ask interview questions. "
+                "Keep questions short and clear."
+            )
+        })
+
+    return messages, interview_started
 
 
-def save_messages(user_message, gpt_response):
-    file = 'database.json'
-    messages = load_messages()
+
+def save_messages(user_message, gpt_response, interview_started=False):
+    global messages
     messages.append({"role": "user", "content": user_message})
     messages.append({"role": "assistant", "content": gpt_response})
-    with open(file, 'w') as f:
-        json.dump(messages, f)
+
+    data = {
+        "messages": messages,
+        "interview_started": interview_started
+    }
+
+    with open('database.json', 'w') as f:
+        json.dump(data, f)
+
+
+# Ensure messages are correctly loaded at startup
+messages, interview_started = load_messages()
 
 def text_to_speech(text):
     voice_id = 'pNInz6obpgDQGcFmaJgB'
