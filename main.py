@@ -414,5 +414,6 @@ if __name__ == "_main_":
 
 
 # uvicorn main:app --reload
+# cd client
 # npm start  (command to run FrontEnd)
 # you need a two terminal, first terminal to run backend and second one to run FrontEnd
