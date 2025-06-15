@@ -1,6 +1,3 @@
-<img width="1013" alt="Screenshot 2025-03-15 at 2 51 07 AM" src="https://github.com/user-attachments/assets/2881d7b7-29cc-4bfe-a1f3-9e9395d02e4f" />
-
-
 # VoiceGPT Interview Assistant
 
 A voice-based AI interview chatbot built using **FastAPI** (backend) and **React** (frontend). Speak or upload audio, get transcribed responses powered by **OpenAI** and optionally converted to voice using **ElevenLabs**.
@@ -100,7 +97,7 @@ npm start
 
 ---
 
-<img width="1013" alt="Screenshot 2025-03-15 at 2 51 07 AM" src="https://github.com/user-attachments/assets/2881d7b7-29cc-4bfe-a1f3-9e9395d02e4f" />
+<img width="970" alt="Screenshot 2025-06-13 at 9 15 09 PM" src="https://github.com/user-attachments/assets/89e4a372-b31a-475c-96c8-614d3d039ce7" />
 
 ---
 
