@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,8 +9,10 @@ import logging
 from dotenv import load_dotenv
 import os
 
+# Load environment variables
 load_dotenv()
 
+# Print to confirm the keys are loaded
 print("Loaded OPEN_AI_KEY:", os.getenv("OPEN_AI_KEY"))
 print("Loaded OPEN_AI_ORG:", os.getenv("OPEN_AI_ORG"))
 print("Loaded ELEVENLABS_KEY:", os.getenv("ELEVENLABS_KEY"))
@@ -59,15 +62,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Define request models for type hinting and validation
 class ChatRequest(BaseModel):
     text: str
 
+# Database file path
 DATABASE_FILE = 'database.json'
+
+# Global variables to track conversation state
 messages = []
 interview_started = False
 
 # Load conversation history at startup
 def load_messages():
+    global messages, interview_started
     messages = []
     interview_started = False
 
@@ -106,6 +114,7 @@ def save_messages(user_message, gpt_response, interview_started_flag=None):
     messages.append({"role": "user", "content": user_message})
     messages.append({"role": "assistant", "content": gpt_response})
 
+    # Only update interview_started if explicitly provided
     if interview_started_flag is not None:
         interview_started = interview_started_flag
 
@@ -123,12 +132,14 @@ def save_messages(user_message, gpt_response, interview_started_flag=None):
 # Transcribe audio using OpenAI's Whisper API
 def transcribe_audio(file):
     try:
+        # Save the uploaded file temporarily
         temp_file_path = f"temp_{file.filename}"
         with open(temp_file_path, 'wb') as buffer:
             buffer.write(file.file.read())
         
         logger.info(f"Transcribing audio file: {file.filename}")
         
+        # Open the file for transcription
         with open(temp_file_path, "rb") as audio_file:
             client = openai.OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
             transcript = client.audio.transcriptions.create(
@@ -138,6 +149,7 @@ def transcribe_audio(file):
 
         transcript = transcript.text
         
+        # Clean up the temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
             
@@ -145,6 +157,7 @@ def transcribe_audio(file):
         return transcript
     except Exception as e:
         logger.error(f"Error transcribing audio: {str(e)}")
+        # Clean up in case of error
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         raise e
@@ -153,10 +166,13 @@ def transcribe_audio(file):
 def get_chat_response(user_message):
     global messages, interview_started
     user_text = user_message['text'].strip()
+
+    # Greeting check
     greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]
     if user_text.lower() in greetings:
         return "Hello! Write '/start' to start an interview!"
 
+    # Check interview status
     if not interview_started:
         if user_text == "/start":
             interview_started = True
@@ -170,11 +186,11 @@ def get_chat_response(user_message):
         logger.info(f"Sending message to OpenAI: {user_text}")
 
         SYSTEM_PROMPT = (
-            "You are Greg, an AI technical interviewer for a software engineering job. "
-            "Do not introduce yourself. Do not say 'Nice to meet you'. "
-            "Start the interview immediately. Ask only one technical interview question at a time. "
-            "Never say general compliments. Stay strictly in the role of an interviewer. "
-            "Keep your questions short and focused. Wait for the user's answer, then continue with the next question."
+                "You are Greg, an interviewer. You are interviewing a candidate "
+                "for a position that they introduced themselvse. Ask one question at a time."
+                "Start with easy questions and gradually increase difficulty. "
+                "Do not respond with generic messages—only ask interview questions. "
+                "Keep questions short and clear."
         )
 
         filtered_messages = [m for m in messages if m["role"] != "system"]
@@ -253,23 +269,29 @@ async def post_audio(file: UploadFile = File(...)):
         if not file:
             raise HTTPException(status_code=400, detail="No file provided")
             
+        # Reset file cursor position if needed
         if hasattr(file, "file") and hasattr(file.file, "seek"):
             file.file.seek(0)
             
+        # Transcribe the audio
         user_message = transcribe_audio(file)
         
         if not user_message:
             raise HTTPException(status_code=500, detail="Failed to transcribe audio")
             
+        # Get chat response
         chat_response = get_chat_response({"text": user_message})
         
+        # Log for debugging
         logger.info(f"User message: {user_message}")
         logger.info(f"Bot response: {chat_response}")
         
+        # Generate speech if ElevenLabs key is available (optional)
         audio_content = None
         if elevenlabs_key:
             audio_content = text_to_speech(chat_response)
         
+        # Return the results
         response_data = {
             "transcription": user_message, 
             "bot_response": chat_response,
@@ -288,10 +310,13 @@ async def post_chat_message(request: ChatRequest):
         if not user_message:
             raise HTTPException(status_code=400, detail="No text provided")
         
+        # Get chat response
         chat_response = get_chat_response({"text": user_message})
+        # Log for debugging
         logger.info(f"User message: {user_message}")
         logger.info(f"Bot response: {chat_response}")
         
+        # Return the results
         return JSONResponse(content={"bot_response": chat_response})
     except Exception as e:
         logger.error(f"Error in post_chat_message: {str(e)}")
@@ -302,22 +327,26 @@ async def clear_history():
     try:
         global messages, interview_started
         
+        # Reset conversation state
         interview_started = False
         
+        # Reset messages to just the system prompt
         messages = [{
             "role": "system",
             "content": (
-                "You are Greg, an AI interviewer. You are interviewing a candidate "
-                "for a software developer position. Ask one question at a time."
+                "You are Greg, an interviewer. You are interviewing a candidate "
+                "for a position that they introduced themselvse. Ask one question at a time."
                 "Start with easy questions and gradually increase difficulty. "
                 "Do not respond with generic messages—only ask interview questions. "
                 "Keep questions short and clear."
             )
         }]
         
+        # Clear the database file
         with open(DATABASE_FILE, 'w') as f:
             json.dump({"messages": messages, "interview_started": interview_started}, f)
             
+        load_messages()    
         return {"message": "Chat history has been cleared", "status": "success"}
     except Exception as e:
         logger.error(f"Error in clear_history: {str(e)}")
