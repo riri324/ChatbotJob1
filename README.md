@@ -99,6 +99,8 @@ npm start
 
 <img width="970" alt="Screenshot 2025-06-13 at 9 15 09 PM" src="https://github.com/user-attachments/assets/89e4a372-b31a-475c-96c8-614d3d039ce7" />
 
+<img width="981" alt="Screenshot 2025-06-16 at 1 44 55 AM" src="https://github.com/user-attachments/assets/42384fc9-9f75-409e-9cc0-1995a57936ea" />
+
 ---
 
 ## 🛠️ Dependencies
