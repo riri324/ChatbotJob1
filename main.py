@@ -1,4 +1,24 @@
 
+# main.py (or app/main.py)
+from dotenv import load_dotenv
+load_dotenv()  # optional; Pydantic will load .env itself too
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+
+app = FastAPI()
+
+# CORS using our settings
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +28,9 @@ import io
 import logging
 from dotenv import load_dotenv
 import os
+
+
+
 
 # Load environment variables
 load_dotenv()
@@ -29,13 +52,10 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv(override=True)
-
-# Set up API keys
-openai.api_key = os.getenv("OPEN_AI_KEY")
-openai.organization = os.getenv("OPEN_AI_ORG")
-elevenlabs_key = os.getenv("ELEVENLABS_KEY")
+# Set up API keys via Pydantic settings
+openai.api_key      = settings.open_ai_key
+openai.organization = settings.open_ai_org
+elevenlabs_key      = settings.elevenlabs_key
 
 # Check if API keys are set
 if not openai.api_key:
@@ -46,17 +66,10 @@ if not elevenlabs_key:
 # Initialize FastAPI app
 app = FastAPI()
 
-# Configure CORS
-origins = [
-    "http://localhost:5174",
-    "http://localhost:5173",
-    "http://localhost:8000",
-    "http://localhost:3000",
-]
-
+# Configure CORS via Pydantic settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
