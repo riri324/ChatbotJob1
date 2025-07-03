@@ -84,142 +84,82 @@ DATABASE_FILE = 'database.json'
 
 # Global variables to track conversation state
 messages = []
-interview_started = False
+interview_mode = False  # <-- NEW
 
-# Load conversation history at startup
+# ---- LOAD/SAVE CHAT HISTORY ----
 def load_messages():
-    global messages, interview_started
+    global messages
     messages = []
-    interview_started = False
-
     if os.path.exists(DATABASE_FILE) and os.stat(DATABASE_FILE).st_size > 0:
         with open(DATABASE_FILE) as db_file:
             try:
                 data = json.load(db_file)
-
-                if isinstance(data, dict): 
+                if isinstance(data, dict):
                     messages = data.get("messages", [])
-                    interview_started = data.get("interview_started", False)
                 else:
                     logger.warning("⚠️ Unexpected JSON format. Resetting.")
                     messages = []
             except json.JSONDecodeError:
                 logger.warning("⚠️ Corrupted database.json. Resetting.")
                 messages = []
+    return messages
 
-    if not messages:
-        messages.append({
-            "role": "system",
-            "content": (
-                "You are Greg, an AI technical interviewer for a software engineering job. "
-                "Do not introduce yourself. Do not say 'Nice to meet you'. "
-                "Start the interview immediately. Ask only one technical interview question at a time. "
-                "Never say general compliments. Stay strictly in the role of an interviewer. "
-                "Keep your questions short and focused. Wait for the user's answer, then continue with the next question."
-            )
-        })
-
-    return messages, interview_started
-
-# Save conversation to file
-def save_messages(user_message, gpt_response, interview_started_flag=None):
-    global messages, interview_started
+def save_messages(user_message, gpt_response):
+    global messages
     messages.append({"role": "user", "content": user_message})
     messages.append({"role": "assistant", "content": gpt_response})
-
-    # Only update interview_started if explicitly provided
-    if interview_started_flag is not None:
-        interview_started = interview_started_flag
-
-    data = {
-        "messages": messages,
-        "interview_started": interview_started
-    }
-
+    data = { "messages": messages }
     try:
         with open(DATABASE_FILE, 'w') as f:
             json.dump(data, f)
     except Exception as e:
         logger.error(f"Error saving messages to database: {str(e)}")
 
-# Transcribe audio using OpenAI's Whisper API
-def transcribe_audio(file):
-    try:
-        # Save the uploaded file temporarily
-        temp_file_path = f"temp_{file.filename}"
-        with open(temp_file_path, 'wb') as buffer:
-            buffer.write(file.file.read())
-        
-        logger.info(f"Transcribing audio file: {file.filename}")
-        
-        # Open the file for transcription
-        with open(temp_file_path, "rb") as audio_file:
-            client = openai.OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
-            transcript = client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=audio_file
-                    )
-
-        transcript = transcript.text
-        
-        # Clean up the temporary file
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-            
-        logger.info(f"Transcription successful: {transcript}")
-        return transcript
-    except Exception as e:
-        logger.error(f"Error transcribing audio: {str(e)}")
-        # Clean up in case of error
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-        raise e
-
-# Get response from OpenAI
+# ---- CHAT LOGIC (MODE SWITCHING) ----
 def get_chat_response(user_message):
-    global messages, interview_started
+    global messages, interview_mode
     user_text = user_message['text'].strip()
 
-    # Greeting check
-    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]
-    if user_text.lower() in greetings:
-        return "Hello! Write '/start' to start an interview!"
+    # Mode switching: /start or /end
+    if user_text.lower() == "/start":
+        interview_mode = True
+        first_question = "Can you introduce yourself?"
+        save_messages(user_message['text'], first_question)
+        return first_question
 
-    # Check interview status
-    if not interview_started:
-        if user_text == "/start":
-            interview_started = True
-            first_question = "Can you introduce yourself?"
-            save_messages(user_text, first_question, interview_started_flag=True)
-            return first_question
-        else:
-            return "Please type '/start' to begin the interview."
+    if user_text.lower() == "/end":
+        interview_mode = False
+        reply = "Interview ended. How else can I help you?"
+        save_messages(user_message['text'], reply)
+        return reply
 
-    try:
-        logger.info(f"Sending message to OpenAI: {user_text}")
-
+    # Decide system prompt based on mode
+    if interview_mode:
         SYSTEM_PROMPT = (
-                "You are Greg, an interviewer. You are interviewing a candidate "
-                "for a position that they introduced themselvse. Ask one question at a time."
-                "Start with easy questions and gradually increase difficulty. "
-                "Do not respond with generic messages—only ask interview questions. "
-                "Keep questions short and clear."
+            "You are Greg, an AI technical interviewer for a software engineering job. "
+            "Do not introduce yourself. Do not say 'Nice to meet you'. "
+            "Start the interview immediately. Ask only one technical interview question at a time. "
+            "Never say general compliments. Stay strictly in the role of an interviewer. "
+            "Keep your questions short and focused. Wait for the user's answer, then continue with the next question."
+        )
+    else:
+        SYSTEM_PROMPT = (
+            "You are a helpful, friendly AI assistant. You can answer questions, help with tasks, and chat about anything."
         )
 
-        filtered_messages = [m for m in messages if m["role"] != "system"]
-        current_messages = [
-            { "role": "system", "content": SYSTEM_PROMPT }
-        ] + filtered_messages + [{ "role": "user", "content": user_text }]
+    # Build context (no system roles from history)
+    filtered_messages = [m for m in messages if m["role"] != "system"]
+    current_messages = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ] + filtered_messages + [{"role": "user", "content": user_text}]
 
-
+    try:
         client = openai.OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=current_messages
         )
         parsed_gpt_response = response.choices[0].message.content
-        logger.info(f"Received response from OpenAI: {parsed_gpt_response[:50]}...")
-
         save_messages(user_text, parsed_gpt_response)
         return parsed_gpt_response
 
@@ -227,6 +167,41 @@ def get_chat_response(user_message):
         logger.error(f"Error in OpenAI API call: {str(e)}")
         return "I'm sorry, there was an error processing your request. Please try again."
 
+# ---- INIT ON STARTUP ----
+messages = load_messages()
+
+# ---- FASTAPI ROUTES ----
+@app.get("/")
+async def root():
+    return {"message": "Backend server is running", "status": "ok"}
+
+@app.post("/chat")
+async def post_chat_message(request: ChatRequest):
+    try:
+        user_message = request.text
+        if not user_message:
+            raise HTTPException(status_code=400, detail="No text provided")
+        chat_response = get_chat_response({"text": user_message})
+        logger.info(f"User message: {user_message}")
+        logger.info(f"Bot response: {chat_response}")
+        return JSONResponse(content={"bot_response": chat_response})
+    except Exception as e:
+        logger.error(f"Error in post_chat_message: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/clear")
+async def clear_history():
+    try:
+        global messages, interview_mode
+        interview_mode = False
+        messages = []
+        with open(DATABASE_FILE, 'w') as f:
+            json.dump({"messages": messages}, f)
+        load_messages()
+        return {"message": "Chat history has been cleared", "status": "success"}
+    except Exception as e:
+        logger.error(f"Error in clear_history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 # Convert text to speech using ElevenLabs
 def text_to_speech(text):
     if not elevenlabs_key:
@@ -269,7 +244,7 @@ def text_to_speech(text):
         return None
 
 # Initialize global variables
-messages, interview_started = load_messages()
+messages = load_messages()
 
 # API Routes
 @app.get("/")
@@ -386,14 +361,14 @@ async def get_audio(text: str):
 
 @app.get("/status")
 async def get_status():
-    """Check if all required API keys are available"""
     status = {
         "openai_api": bool(openai.api_key),
         "elevenlabs_api": bool(elevenlabs_key),
-        "interview_started": interview_started,
+        "interview_mode": interview_mode,
         "message_count": len(messages)
     }
     return status
+
 
 # Run the application
 if __name__ == "_main_":
